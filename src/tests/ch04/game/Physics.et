@@ -1,0 +1,878 @@
+package ch04.game;
+
+import ch04.common.AudioClip;
+import ch04.common.Polygon;
+import ch04.common.Tools;
+import android.content.Context;
+import android.graphics.Point;
+
+public class Physics  
+{	
+	AsteroidsState asteroids;
+	int width;
+	int height;
+	Constants constants;
+	Context mContex;
+	Audio audio;
+	
+	Asteroids WandH;
+	
+	// Photon data.
+	
+	int photonIndex; // Index to next available photon sprite.
+	long photonTime; // Time value used to keep firing rate constant.
+	
+	
+	int asteroidsCounter; // Break-time counter.
+	int clipsLoaded = 0;
+	
+	
+	
+	// Game data.
+	int score;
+	int highScore;
+	
+	
+	int newShipScore;
+	int newUfoScore;
+	boolean[] asteroidIsSmall = new boolean[Constants.MAX_ROCKS];
+	double asteroidsSpeed;
+	int asteroidsLeft;
+
+	int shipCounter;
+	int shipsLeft; // Number of ships left in game, including current one.
+
+	
+	
+	int ufoPassesLeft;
+	int ufoCounter;
+	int missileCounter;
+	int[] explosionCounter = new int[Constants.MAX_SCRAP];
+	int explosionIndex;
+	
+	int i;
+	boolean detail;
+	int clipTotal = 0;
+	
+	PolygonSprite ship;
+
+	PolygonSprite fwdThruster, revThruster;
+	PolygonSprite ufo;
+	PolygonSprite missile;
+	PolygonSprite[] photons = new PolygonSprite[Constants.MAX_SHOTS];
+	PolygonSprite[] asteroidsPS = new PolygonSprite[Constants.MAX_ROCKS];
+	PolygonSprite[] explosions = new PolygonSprite[Constants.MAX_SCRAP];
+	
+	public Physics(AsteroidsState game, Context context, Audio ad, Asteroids wh) {
+		asteroids = /*adapt*/game;
+		//width = w;
+		//height = h;
+		constants = new Constants(wh);
+		mContex = context;
+		audio = /*adapt*/ad;
+		
+		WandH = wh;
+	}
+	
+	protected void updatePhysics() {
+		updateShip();
+		updatePhotons();
+		updateUfo();
+		updateMissle();
+		updateAsteroids();
+		updateExplosions();
+
+		// Check the score and advance high score,  
+		if (score > highScore)
+			highScore = score;
+		
+		// add a new ship if score reaches Constants.NEW_SHIP_POINTS
+		if (score > newShipScore) {
+			newShipScore += Constants.NEW_SHIP_POINTS;
+			shipsLeft++;
+		}
+		
+		// start the flying saucer as necessary.		
+		if (asteroids.playing && score > newUfoScore && ! ufo.active) {
+			newUfoScore += Constants.NEW_UFO_POINTS;
+			ufoPassesLeft = Constants.UFO_PASSES;
+			initUfo();
+		}
+
+		// If all asteroids have been destroyed create a new batch.
+		if (asteroidsLeft <= 0)
+			if (--asteroidsCounter <= 0)
+				initAsteroids();
+		
+	}
+	
+	public void updateShip() {  
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+
+		double dx, dy, speed;
+
+		if (!asteroids.playing)
+			return;
+
+		/**
+		 * Rotate the ship if left or right cursor key is down.
+		 */
+		if (asteroids.left) {
+			ship.angle += constants.getShipAngleStep();
+			if (ship.angle > 2 * Math.PI)
+				ship.angle -= 2 * Math.PI;
+		}
+		if (asteroids.right) {
+			ship.angle -= constants.getShipAngleStep();
+			if (ship.angle < 0)
+				ship.angle += 2 * Math.PI;
+		}
+
+		/**
+		 * Fire thrusters if up or down cursor key is down.
+		 */
+		dx = constants.getShipSpeedStep() * -Math.sin(ship.angle);
+		dy = constants.getShipSpeedStep() * Math.cos(ship.angle);
+		if (asteroids.up) {
+			ship.deltaX += dx;
+			ship.deltaY += dy;
+		}
+		if (asteroids.down) {
+			ship.deltaX -= dx;
+			ship.deltaY -= dy;
+		}
+
+		/**
+		 * Don't let ship go past the speed limit.
+		 */
+		if (asteroids.up || asteroids.down) {
+			speed = Math.sqrt(ship.deltaX * ship.deltaX + ship.deltaY
+					* ship.deltaY);
+			if (speed > constants.getMaxShipSpeed()) {
+				dx = constants.getMaxShipSpeed() * -Math.sin(ship.angle);
+				dy = constants.getMaxShipSpeed() * Math.cos(ship.angle);
+				if (asteroids.up)
+					ship.deltaX = dx;
+				else
+					ship.deltaX = -dx;
+				if (asteroids.up)
+					ship.deltaY = dy;
+				else
+					ship.deltaY = -dy;
+			}
+		}
+
+		/**
+		 * Move the ship. If it is currently in hyper space, advance the
+		 * count down.
+		 */
+		if (ship.active) {
+			ship.advance(width, height);
+			ship.render(width, height);
+			if (asteroids.hyperCounter > 0)
+				asteroids.hyperCounter--;
+
+			// Update the thruster sprites to match the ship sprite.
+
+			fwdThruster.x = ship.x;
+			fwdThruster.y = ship.y;
+			fwdThruster.angle = ship.angle;
+			fwdThruster.render(width, height);
+			revThruster.x = ship.x;
+			revThruster.y = ship.y;
+			revThruster.angle = ship.angle;
+			revThruster.render(width, height);
+		}
+
+		/**
+		 * Ship is exploding, advance the countdown or create a new ship if it
+		 * is done exploding. The new ship is added as though it were in
+		 * hyper space. This gives the player time to move the ship if it is 
+		 * in imminent danger. If that was the last ship, end the game.
+		 */
+		else {
+			if (--shipCounter <= 0) {
+				if (shipsLeft > 0) {
+					initShip();
+					asteroids.hyperCounter = constants.getHyperCount();
+				} else {
+					endGame();
+				}
+			}
+		}
+	}
+	
+	public void updatePhotons() {
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+
+		int i;
+
+		// Move any active photons. Stop it when its counter has expired.
+		for (i = 0; i < Constants.MAX_SHOTS; i++)
+			if (photons[i].active) {
+				if (!photons[i].advance(width, height))
+					photons[i].render(width, height);
+				else
+					photons[i].active = false;
+			}
+	}
+	
+	public void updateUfo() {
+		int w = WandH.getScrnWidth();
+		int h = WandH.getScrnHeight();
+
+		int i, d;
+		// boolean wrapped;
+
+		// Move the flying saucer and check for collision with a photon. Stop it
+		// when its counter has expired.
+
+		if (ufo.active) {
+			if (--ufoCounter <= 0) {
+				if (--ufoPassesLeft > 0)
+					initUfo();
+				else
+					stopUfo();
+			}
+			if (ufo.active) {
+				ufo.advance(w, h);
+				ufo.render(w, h);
+				for (i = 0; i < Constants.MAX_SHOTS; i++)
+					if (photons[i].active && ufo.isColliding(photons[i])) {
+						if (asteroids.sound)
+							(/*adapt*/audio.crashSound).play();
+						explode(ufo, w, h);
+						stopUfo();
+						score += Constants.UFO_POINTS;
+					}
+
+				// On occassion, fire a missile at the ship if the saucer is not
+				// too
+				// close to it.
+
+				d = (int) Math.max(Math.abs(ufo.x - ship.x), Math.abs(ufo.y
+						- ship.y));
+				if (ship.active && asteroids.hyperCounter <= 0 && ufo.active
+						&& !missile.active
+						&& d > constants.getMaxRockSpeed() * constants.getFPS() / 2
+						&& Math.random() < constants.getMissleProbablity())
+					initMissle();
+			}
+		}
+	}
+	
+	public void updateMissle() {
+		int w = WandH.getScrnWidth();
+		int h = WandH.getScrnHeight();
+
+		int i;
+
+		// Move the guided missile and check for collision with ship or photon.
+		// Stop
+		// it when its counter has expired.
+
+		if (missile.active) {
+			if (--missileCounter <= 0)
+				stopMissle();
+			else {
+				guideMissle();
+				missile.advance(w, h);
+				missile.render(w, h);
+				for (i = 0; i < Constants.MAX_SHOTS; i++)
+					if (photons[i].active && missile.isColliding(photons[i])) {
+						if (asteroids.sound)
+							(/*adapt*/audio.crashSound).play();
+						explode(missile, w, h);
+						stopMissle();
+						score += Constants.MISSLE_POINTS;
+					}
+				if (missile.active && ship.active && asteroids.hyperCounter <= 0
+						&& ship.isColliding(missile)) {
+					if (asteroids.sound)
+						(/*adapt*/audio.crashSound).play();
+					explode(ship, w, h);
+					stopShip();
+					stopUfo();
+					stopMissle();
+				}
+			}
+		}
+	}
+	
+	public void updateAsteroids() 
+	{
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+		int i, j;
+
+		// Move any active asteroids and check for collisions.
+
+		for (i = 0; i < Constants.MAX_ROCKS; i++)
+			if (asteroidsPS[i].active) {
+				asteroidsPS[i].advance(width, height);
+				asteroidsPS[i].render(width, height);
+
+				// If hit by photon, kill asteroid and advance score. If
+				// asteroid is
+				// large, make some smaller ones to replace it.
+
+				for (j = 0; j < Constants.MAX_SHOTS; j++)
+					if (photons[j].active && asteroidsPS[i].active
+							&& asteroidsPS[i].isColliding(photons[j])) {
+						asteroidsLeft--;
+						asteroidsPS[i].active = false;
+						photons[j].active = false;
+						if (asteroids.sound)
+							(/*adapt*/audio.explosionSound).play();
+						explode(asteroidsPS[i], width, height);
+						if (!asteroidIsSmall[i]) {
+							score += Constants.BIG_POINTS;
+							initSmallAsteroids(i);
+						} else
+							score += Constants.SMALL_POINTS;
+					}
+
+				// If the ship is not in hyperspace, see if it is hit.
+
+				if (ship.active && asteroids.hyperCounter <= 0 && asteroidsPS[i].active
+						&& asteroidsPS[i].isColliding(ship)) {
+					if (asteroids.sound)
+						(/*adapt*/audio.crashSound).play();
+					explode(ship, width, height);
+					stopShip();
+					stopUfo();
+					stopMissle();
+				}
+			}
+	}
+	
+	public void updateExplosions() {
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+		int i;
+
+		// Move any active explosion debris. Stop explosion when its counter has
+		// expired.
+
+		for (i = 0; i < Constants.MAX_SCRAP; i++)
+			if (explosions[i].active) {
+				explosions[i].advance(width, height);
+				explosions[i].render(width, height);
+				if (--explosionCounter[i] < 0)
+					explosions[i].active = false;
+			}
+	}
+	
+	public void initUfo() {
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+
+		double angle, speed;
+
+		// Randomly set flying saucer at left or right edge of the screen.
+
+		ufo.active = true;
+		ufo.x = -width / 2;
+		ufo.y = (int) (Math.random() * 2 * height - height);
+		angle = Math.random() * Math.PI / 4 - Math.PI / 2;
+		speed = constants.getMaxRockSpeed() / 2 + Math.random()
+				* (constants.getMaxRockSpeed() / 2);
+		ufo.deltaX = speed * -Math.sin(angle);
+		ufo.deltaY = speed * Math.cos(angle);
+		if (Math.random() < 0.5) {
+			ufo.x = width / 2;
+			ufo.deltaX = -ufo.deltaX;
+		}
+		if (ufo.y > 0)
+			ufo.deltaY = ufo.deltaY;
+		ufo.render(width, height);
+		audio.saucerPlaying = true;
+		if (asteroids.sound)
+			(/*adapt*/audio.saucerSound).loop();
+		ufoCounter = (int) Math.abs(width / ufo.deltaX);
+	}
+	
+	/**
+	 * Init Asteroids
+	 */
+	public void initAsteroids() 
+	{
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+
+		int i, j;
+		int s;
+		double theta, r;
+		int x, y;
+
+		// Create random shapes, positions and movements for each asteroid.
+		for (i = 0; i < Constants.MAX_ROCKS; i++) {
+
+			// Create a jagged shape for the asteroid and give it a random
+			// rotation.
+			asteroidsPS[i].shape = new Polygon();
+
+			s = Constants.MIN_ROCK_SIDES
+					+ (int) (Math.random() * (Constants.MAX_ROCK_SIDES - Constants.MIN_ROCK_SIDES));
+
+			for (j = 0; j < s; j++) {
+				theta = 2 * Math.PI / s * j;
+				r = Constants.MIN_ROCK_SIZE
+						+ (int) (Math.random() * (Constants.MAX_ROCK_SIZE - Constants.MIN_ROCK_SIZE));
+				x = (int) -Math.round(r * Math.sin(theta));
+				y = (int) Math.round(r * Math.cos(theta));
+				asteroidsPS[i].shape.addPoint(x, y);
+			}
+			asteroidsPS[i].active = true;
+			asteroidsPS[i].angle = 0.0;
+			asteroidsPS[i].deltaAngle = Math.random() * 2
+					* constants.getMaxRockSpin() - constants.getMaxRockSpin();
+
+			// Place the asteroid at one edge of the screen.
+
+			if (Math.random() < 0.5) {
+				asteroidsPS[i].x = -width / 2;
+				if (Math.random() < 0.5)
+					asteroidsPS[i].x = width / 2;
+				asteroidsPS[i].y = (int) (Math.random() * height);
+			} else {
+				asteroidsPS[i].x = (int) (Math.random() * width);
+				asteroidsPS[i].y = -height / 2;
+				if (Math.random() < 0.5)
+					asteroidsPS[i].y = height / 2;
+			}
+
+			// Set a random motion for the asteroid.
+
+			asteroidsPS[i].deltaX = Math.random() * asteroidsSpeed;
+			if (Math.random() < 0.5)
+				asteroidsPS[i].deltaX = -asteroidsPS[i].deltaX;
+			asteroidsPS[i].deltaY = Math.random() * asteroidsSpeed;
+			if (Math.random() < 0.5)
+				asteroidsPS[i].deltaY = -asteroidsPS[i].deltaY;
+
+			asteroidsPS[i].render(width, height);
+			asteroidIsSmall[i] = false;
+		}
+
+		asteroidsCounter = constants.getStormPause();
+		asteroidsLeft = Constants.MAX_ROCKS;
+		if (asteroidsSpeed < constants.getMaxRockSpeed())
+			asteroidsSpeed += 0.5;
+	}
+	
+	void initGame() { 
+		// Initialize game data and sprites.
+		score = 0;
+		shipsLeft = Constants.MAX_SHIPS;
+		asteroidsSpeed = constants.getMinRockSpeed();
+		newShipScore = Constants.NEW_SHIP_POINTS;
+		newUfoScore = Constants.NEW_UFO_POINTS;
+		initShip();
+		initPhotons();
+		stopUfo();
+		stopMissle();
+		initAsteroids();
+		initExplosions();
+		asteroids.playing = true;
+		asteroids.paused = false;
+		photonTime = System.currentTimeMillis();
+
+	}
+	
+	void initShip() 
+	{
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+
+		// Reset the ship sprite at the center of the screen.
+		ship.active = true;
+		ship.angle = 0.0;
+		ship.deltaAngle = 0.0;
+		ship.x = 0;
+		ship.y = 0;
+		ship.deltaX = 0.0;
+		ship.deltaY = 0.0;
+
+		ship.render(width, height);
+
+		// Initialize thruster sprites.
+		createThrusters();
+
+		fwdThruster.x = ship.x;
+		fwdThruster.y = ship.y;
+		fwdThruster.angle = ship.angle;
+		fwdThruster.render(width, height);
+		revThruster.x = ship.x;
+		revThruster.y = ship.y;
+		revThruster.angle = ship.angle;
+		revThruster.render(width, height);
+
+		if (asteroids.loaded)
+			(/*adapt*/audio.thrustersSound).stop();
+
+		audio.thrustersPlaying = false;
+
+		asteroids.hyperCounter = 0;
+	}
+	
+	void createStarts() {
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+		
+		// Generate the starry background.
+		asteroids.numStars = width * height / 5000;
+		asteroids.stars = new Point[asteroids.numStars];
+
+		for (i = 0; i < asteroids.numStars; i++)
+			asteroids.stars[i] = new Point((int) (Math.random() * width), (int) (Math
+					.random() * height));
+	}
+	
+	void createThrusters() {
+		// Create shapes for the ship thrusters.
+		fwdThruster = new PolygonSprite();
+		fwdThruster.shape.addPoint(0, 12);
+		fwdThruster.shape.addPoint(-3, 16);
+		fwdThruster.shape.addPoint(0, 26);
+		fwdThruster.shape.addPoint(3, 16);
+		revThruster = new PolygonSprite();
+		revThruster.shape.addPoint(-2, 12);
+		revThruster.shape.addPoint(-4, 14);
+		revThruster.shape.addPoint(-2, 20);
+		revThruster.shape.addPoint(0, 14);
+		revThruster.shape.addPoint(2, 12);
+		revThruster.shape.addPoint(4, 14);
+		revThruster.shape.addPoint(2, 20);
+		revThruster.shape.addPoint(0, 14);
+	}
+	
+	public void initPhotons() {
+
+		int i;
+
+		for (i = 0; i < Constants.MAX_SHOTS; i++)
+			photons[i].active = false;
+		photonIndex = 0;
+	}
+	
+	public void stopShip() {
+
+		ship.active = false;
+		shipCounter = constants.getScrapCount();
+		if (shipsLeft > 0)
+			shipsLeft--;
+
+		if (asteroids.loaded)
+			(/*adapt*/audio.thrustersSound).stop();
+
+		audio.thrustersPlaying = false;
+	}
+	
+	public void endGame() {
+		// Stop ship, flying saucer, guided missile and associated sounds.
+		asteroids.playing = false;
+		stopShip();
+		stopUfo();
+		stopMissle();
+	}
+	
+	public void explode(PolygonSprite s, int width, int height) {
+
+		int c, i, j;
+		int cx, cy;
+
+		// Create sprites for explosion animation. The each individual line
+		// segment
+		// of the given sprite is used to create a new sprite that will move
+		// outward from the sprite's original position with a random rotation.
+
+		s.render(width, height);
+		c = 2;
+		if (detail || s.sprite.npoints < 6)
+			c = 1;
+		for (i = 0; i < s.sprite.npoints; i += c) {
+			explosionIndex++;
+			if (explosionIndex >= Constants.MAX_SCRAP)
+				explosionIndex = 0;
+			explosions[explosionIndex].active = true;
+			explosions[explosionIndex].shape = new Polygon();
+			j = i + 1;
+			if (j >= s.sprite.npoints)
+				j -= s.sprite.npoints;
+			cx = (int) ((s.shape.xpoints[i] + s.shape.xpoints[j]) / 2);
+			cy = (int) ((s.shape.ypoints[i] + s.shape.ypoints[j]) / 2);
+			explosions[explosionIndex].shape.addPoint(s.shape.xpoints[i] - cx,
+					s.shape.ypoints[i] - cy);
+			explosions[explosionIndex].shape.addPoint(s.shape.xpoints[j] - cx,
+					s.shape.ypoints[j] - cy);
+			explosions[explosionIndex].x = s.x + cx;
+			explosions[explosionIndex].y = s.y + cy;
+			explosions[explosionIndex].angle = s.angle;
+			explosions[explosionIndex].deltaAngle = 4 * (Math.random() * 2
+					* constants.getMaxRockSpin() - constants.getMaxRockSpin());
+			explosions[explosionIndex].deltaX = (Math.random() * 2
+					* constants.getMaxRockSpeed() - constants.getMaxRockSpeed() + s.deltaX) / 2;
+			explosions[explosionIndex].deltaY = (Math.random() * 2
+					* constants.getMaxRockSpeed() - constants.getMaxRockSpeed() + s.deltaY) / 2;
+			explosionCounter[explosionIndex] = constants.getScrapCount();
+		}
+	}
+	
+	public void initSmallAsteroids(int n) {
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+		int count;
+		int i, j;
+		int s;
+		int tempX, tempY;
+		double theta, r;
+		int x, y;
+
+		// Create one or two smaller asteroids from a larger one using inactive
+		// asteroids. The new asteroids will be placed in the same position as
+		// the
+		// old one but will have a new, smaller shape and new, randomly
+		// generated
+		// movements.
+
+		count = 0;
+		i = 0;
+		tempX = asteroidsPS[n].x;
+		tempY = asteroidsPS[n].y;
+		do {
+			if (!asteroidsPS[i].active) {
+				asteroidsPS[i].shape = new Polygon();
+				s = Constants.MIN_ROCK_SIDES
+						+ (int) (Math.random() * (Constants.MAX_ROCK_SIDES - Constants.MIN_ROCK_SIDES));
+				for (j = 0; j < s; j++) {
+					theta = 2 * Math.PI / s * j;
+					r = (Constants.MIN_ROCK_SIZE + (int) (Math.random() * (Constants.MAX_ROCK_SIZE - Constants.MIN_ROCK_SIZE))) / 2;
+					x = (int) -Math.round(r * Math.sin(theta));
+					y = (int) Math.round(r * Math.cos(theta));
+					asteroidsPS[i].shape.addPoint(x, y);
+				}
+				asteroidsPS[i].active = true;
+				asteroidsPS[i].angle = 0.0;
+				asteroidsPS[i].deltaAngle = Math.random() * 2
+						* constants.getMaxRockSpin() - constants.getMaxRockSpin();
+				asteroidsPS[i].x = tempX;
+				asteroidsPS[i].y = tempY;
+				asteroidsPS[i].deltaX = Math.random() * 2 * asteroidsSpeed
+						- asteroidsSpeed;
+				asteroidsPS[i].deltaY = Math.random() * 2 * asteroidsSpeed
+						- asteroidsSpeed;
+				asteroidsPS[i].render(width, height);
+				asteroidIsSmall[i] = true;
+				count++;
+				asteroidsLeft++;
+			}
+			i++;
+		} while (i < Constants.MAX_ROCKS && count < 2);
+	}
+	
+	public void stopUfo() {
+
+		ufo.active = false;
+		ufoCounter = 0;
+		ufoPassesLeft = 0;
+		if (asteroids.loaded)
+			(/*adapt*/audio.saucerSound).stop();
+		audio.saucerPlaying = false;
+	}
+	
+	public void stopMissle() {
+
+		missile.active = false;
+		missileCounter = 0;
+		if (asteroids.loaded)
+			(/*adapt*/audio.missileSound).stop();
+		audio.missilePlaying = false;
+	}
+	
+	public void initExplosions() {
+
+		int i;
+
+		for (i = 0; i < Constants.MAX_SCRAP; i++) {
+			explosions[i].shape = new Polygon();
+			explosions[i].active = false;
+			explosionCounter[i] = 0;
+		}
+		explosionIndex = 0;
+	}
+	
+	public void initMissle() {
+		int w = WandH.getScrnWidth();
+		int h = WandH.getScrnHeight();
+
+		missile.active = true;
+		missile.angle = 0.0;
+		missile.deltaAngle = 0.0;
+		missile.x = ufo.x;
+		missile.y = ufo.y;
+		missile.deltaX = 0.0;
+		missile.deltaY = 0.0;
+		missile.render(w, h);
+		missileCounter = constants.getMissleCount();
+		if (asteroids.sound)
+			(/*adapt*/audio.missileSound).loop();
+		audio.missilePlaying = true;
+	}
+	
+	public void guideMissle() {
+
+		double dx, dy, angle;
+
+		if (!ship.active || asteroids.hyperCounter > 0)
+			return;
+
+		// Find the angle needed to hit the ship.
+
+		dx = ship.x - missile.x;
+		dy = ship.y - missile.y;
+		if (dx == 0 && dy == 0)
+			angle = 0;
+		if (dx == 0) {
+			if (dy < 0)
+				angle = -Math.PI / 2;
+			else
+				angle = Math.PI / 2;
+		} else {
+			angle = Math.atan(Math.abs(dy / dx));
+			if (dy > 0)
+				angle = -angle;
+			if (dx < 0)
+				angle = Math.PI - angle;
+		}
+
+		// Adjust angle for screen coordinates.
+
+		missile.angle = angle - Math.PI / 2;
+
+		// Change the missile's angle so that it points toward the ship.
+
+		missile.deltaX = 0.75 * constants.getMaxRockSpeed()
+				* -Math.sin(missile.angle);
+		missile.deltaY = 0.75 * constants.getMaxRockSpeed()
+				* Math.cos(missile.angle);
+	}
+	
+	public void initialize(){
+		// Load sounds
+		try {
+			loadSounds();
+			asteroids.loaded = true;
+			
+		} catch (Exception e) {
+			Tools.MessageBox(mContex, "Sound Error: " + e.toString());
+		}
+
+		// create start background
+		createStarts();
+
+		// Create shape for the ship sprite.
+
+		ship = new PolygonSprite(); 
+		ship.shape.addPoint(0, -10);
+		ship.shape.addPoint(7, 10);
+		ship.shape.addPoint(-7, 10);
+
+		// Create thruster shapes
+		createThrusters();
+
+		// Create shape for each photon sprites.
+
+		for (i = 0; i < Constants.MAX_SHOTS; i++) {
+			photons[i] = new PolygonSprite();
+			photons[i].shape.addPoint(1, 1);
+			photons[i].shape.addPoint(1, -1);
+			photons[i].shape.addPoint(-1, 1);
+			photons[i].shape.addPoint(-1, -1);
+		}
+
+		// Create shape for the flying saucer.
+
+		ufo = new PolygonSprite();
+		ufo.shape.addPoint(-15, 0);
+		ufo.shape.addPoint(-10, -5);
+		ufo.shape.addPoint(-5, -5);
+		ufo.shape.addPoint(-5, -8);
+		ufo.shape.addPoint(5, -8);
+		ufo.shape.addPoint(5, -5);
+		ufo.shape.addPoint(10, -5);
+		ufo.shape.addPoint(15, 0);
+		ufo.shape.addPoint(10, 5);
+		ufo.shape.addPoint(-10, 5);
+
+		// Create shape for the guided missile.
+
+		missile = new PolygonSprite();
+		missile.shape.addPoint(0, -4);
+		missile.shape.addPoint(1, -3);
+		missile.shape.addPoint(1, 3);
+		missile.shape.addPoint(2, 4);
+		missile.shape.addPoint(-2, 4);
+		missile.shape.addPoint(-1, 3);
+		missile.shape.addPoint(-1, -3);
+
+		// Create asteroid sprites.
+
+		for (i = 0; i < Constants.MAX_ROCKS; i++)
+			asteroidsPS[i] = new PolygonSprite();
+
+		// Create explosion sprites.
+
+		for (i = 0; i < Constants.MAX_SCRAP; i++)
+			explosions[i] = new PolygonSprite();
+
+		// Initialize game data and put us in 'game over' mode.
+
+		highScore = 0;
+		asteroids.sound = true;
+		detail = true;
+		initGame();
+		endGame();
+	}
+	
+	void loadSounds() {
+		// Load all sound clips by playing and immediately stopping them. Update
+		// counter and total for display.
+		Context ctx = mContex;//getContext();
+
+		audio.crashSound = new AudioClip(ctx, R.raw.a_crash);
+		clipTotal++;
+		audio.explosionSound = new AudioClip(ctx, R.raw.a_explosion);
+		clipTotal++;
+		audio.fireSound = new AudioClip(ctx, R.raw.a_fire); 
+		clipTotal++;
+		audio.missileSound = new AudioClip(ctx, R.raw.a_missle); 
+		clipTotal++;
+		audio.saucerSound = new AudioClip(ctx, R.raw.a_saucer); 
+		clipTotal++;
+		audio.thrustersSound = new AudioClip(ctx, R.raw.a_thrusters); 
+		clipTotal++;
+		audio.warpSound = new AudioClip(ctx, R.raw.a_warp); 
+		clipTotal++;
+	}
+	
+	public void onTouch() {
+		
+		photonTime = System.currentTimeMillis();
+		photonIndex++;
+		
+		if (photonIndex >= Constants.MAX_SHOTS)
+			photonIndex = 0;
+		
+		
+		photons[photonIndex].active = true;
+		photons[photonIndex].x = ship.x;
+		photons[photonIndex].y = ship.y;
+		photons[photonIndex].deltaX = 2 * constants.getMaxRockSpeed()
+				* -Math.sin(ship.angle);
+		photons[photonIndex].deltaY = 2 * constants.getMaxRockSpeed()
+				* Math.cos(ship.angle);
+	}
+}

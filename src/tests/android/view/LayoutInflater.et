@@ -1,0 +1,20 @@
+package android.view;
+
+import android.view.LayoutInflater;
+import android.test.mock.MockContext;
+import android.view.View;
+import android.content.Context;
+import ch03.game.sb.SpaceBlasterGame;
+import ch04.game.Asteroids;
+
+public class LayoutInflater {
+		public View inflate(int resource, Object o){
+			//return new SpaceBlasterGame@phase(main)(new MockContext());
+			return new Asteroids@phase(main)(new MockContext());
+		}
+		
+		public static LayoutInflater from(Context context) {
+			return new LayoutInflater();
+		}
+
+}

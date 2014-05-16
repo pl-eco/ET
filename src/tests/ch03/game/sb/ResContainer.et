@@ -1,0 +1,116 @@
+package ch03.game.sb;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.content.Intent;
+
+import android.graphics.Canvas;
+import android.graphics.Paint;
+
+public class ResContainer @phase(graphics){
+
+	private Paint mBitmapPaint = new Paint();
+	private Paint mTextPaint = new Paint();
+	private Paint mLaserBarPaint = new Paint();
+	private Paint mShieldBarPaint = new Paint();
+	private Paint mShieldPaint = new Paint();
+
+	Bitmap ship, bullet, meteor;
+
+	Bitmap[] fire, boom;
+
+	Context mContex;
+
+	// Canvas c;
+
+	public ResContainer(Context mContex) {
+		this.mContex = mContex;
+	}
+
+	public void setShip(Integer id) {
+		this.ship = BitmapFactory.decodeResource(mContex.getResources(),
+				id.intValue());
+	}
+
+	public void setBullet(Integer id) {
+		this.bullet = BitmapFactory.decodeResource(mContex.getResources(),
+				id.intValue());
+	}
+
+	public void setMeteor(Integer id) {
+		this.meteor = BitmapFactory.decodeResource(mContex.getResources(),
+				id.intValue());
+	}
+
+	public void setFire(Integer id0, Integer id1) {
+		this.fire = new Bitmap[] {
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id0.intValue()),
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id1.intValue()) };
+	}
+
+	public void setBoom(Integer id0, Integer id1, Integer id2, Integer id3,
+			Integer id4) {
+		this.boom = new Bitmap[] {
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id0.intValue()),
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id1.intValue()),
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id2.intValue()),
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id3.intValue()),
+				BitmapFactory.decodeResource(mContex.getResources(),
+						id4.intValue()) };
+	}
+
+	public Bitmap getShip() {
+		return ship;
+	}
+
+	public void drawShip(Canvas c, int x, int y) {
+		c.drawBitmap(getShip(), x, y, mBitmapPaint);
+	}
+
+	public Bitmap getBullet() {
+		return bullet;
+	}
+
+	public void drawBullet(Canvas c, int x, int y) {
+		c.drawBitmap(getBullet(), x, y, mBitmapPaint);
+	}
+
+	public Bitmap getMeteor() {
+		return meteor;
+	}
+
+	public void drawMeteor(Canvas c, int x, int y) {
+		c.drawBitmap(getMeteor(), x, y, mBitmapPaint);
+	}
+
+	public Bitmap[] getFire() {
+		return fire;
+	}
+
+	public void drawFire(Canvas c, int x, int y, int firecnt) {
+		c.drawBitmap(getFire()[firecnt], x, y, mBitmapPaint);
+	}
+
+	public Bitmap[] getBoom() {
+		return boom;
+	}
+
+	public void drawBoom(Canvas c, int x, int y, int frame) {
+		c.drawBitmap(getBoom()[frame], x, y, mBitmapPaint);
+	}
+
+	public int noscale shipWidth() {
+		return getShip().getWidth();
+	}
+
+	public int noscale shipHeight() {
+		return getShip().getHeight();
+	}
+}

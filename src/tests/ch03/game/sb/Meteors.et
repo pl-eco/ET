@@ -1,0 +1,124 @@
+package ch03.game.sb;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import android.graphics.Canvas;
+import android.graphics.RectF;
+
+public class Meteors @phase(math) {
+	// Meteor variables
+	private int maxmet;
+	private int[] metx;
+	private int[] mety;
+	private int[] metf;
+	private int metcount;
+	private boolean[] metr;
+	
+	public int metmy;
+	public int mrenew;
+
+	public void initialize(int scrnHeight) {
+		// Meteor initialize
+		maxmet = scrnHeight / Constant.symet + 1;
+		metx = new int[maxmet];
+		mety = new int[maxmet];
+		metf = new int[maxmet];
+		metr = new boolean[maxmet];
+	}
+
+	public void startGame() {
+		for (int n = 0; n < maxmet; n++) {
+			metx[n] = -1;
+			metf[n] = 0;
+			metr[n] = true;
+		}
+		metcount = 0;
+		metmy = 2;
+		mrenew = 60;// 25
+	}
+
+	public void newMeteor(int scrnWidth) {
+		int n = 0, f = -1;
+		metcount++;
+		if (metcount > mrenew / metmy) {
+			metcount = 0;
+			while (n < maxmet & metx[n] >= 0) {
+				n++;
+			}
+			if (n < maxmet) {
+				f = n;
+			}
+			int xSize = scrnWidth - Constant.borderwidth * 2;
+			if (f >= 0) {
+				metx[f] = (int) (Math.random() * (xSize - Constant.sxmet) + 1);
+				mety[f] = Constant.borderwidth - Constant.symet;
+				metr[f] = true;
+				metf[f] = Constant.bframes;
+			}
+		}
+	}
+
+	public void deleteMeteor(int n) {
+		if (metr[n]) {
+			metr[n] = false;
+			metf[n] = Constant.bframes;
+		} else {
+			metx[n] = -1;
+			metr[n] = true;
+			metf[n] = 0;
+		}
+	}
+
+	private boolean hit(int x, int xBound, int y, int yBound) {
+		for (int n = 0; n < maxmet; n++) {
+			if (metx[n] >= 0) {
+				if (metr[n] & x + xBound > metx[n]
+						& x < metx[n] + Constant.sxmet & y + yBound > mety[n]
+						& y < mety[n] + Constant.symet) {
+					deleteMeteor(n);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public boolean hitBullet(Point point) {
+		return hit(point.getX(), Bullets.bul_xs, point.getY(), Bullets.bul_ys);
+	}
+
+	public boolean hitShip(Point point) {
+		return hit(point.getX(), Constant.sxsize, point.getY(), Constant.sysize);
+	}
+
+	public List locateMeteors(int scrnWidth, int scrnHeight) {
+		this.newMeteor(scrnWidth);
+
+		// compute the meteor locations and boom locations
+		List points = new LinkedList();
+		for (int n = 0; n < maxmet; n++) {
+			if (metx[n] >= 0) {
+				mety[n] += metmy;
+				if (mety[n] > scrnHeight - Constant.borderwidth
+						- Constant.scoreheight) {
+					deleteMeteor(n);
+				} else {
+					if (metr[n]) {
+						points.add(new Point(metx[n], mety[n]));
+					} else {
+						points.add(new Point(
+								metx[n] + (Constant.sxmet - Constant.sxbom) / 2,
+								mety[n] + (Constant.symet - Constant.sybom) / 2,
+								Constant.bframes - metf[n]));
+
+						metf[n]--;
+						if (metf[n] < 0)
+							deleteMeteor(n);
+					}
+				}
+			}
+		}
+		return points;
+	}
+}

@@ -1,0 +1,108 @@
+package java.util;
+
+public class Vector implements List{
+	private Object field;
+	
+	public Vector(int initialCapacity) {}
+	
+	public Vector(){}
+	
+	public boolean add(Object obj){
+		field = obj;
+		return true;
+	}
+	
+	public void add(int i, Object obj){
+		field = obj;
+	}
+	
+	public void put(Object obj)
+	{
+		field = obj;
+	}
+	public Object get(){
+		return field;
+	}
+	
+	public Object get(int i){ return field; }
+	
+	public void addElement(Object obj){
+		field = obj;
+	}
+	
+	public void removeAllElements(){};
+	
+	public Object elementAt(int num){
+		return field;
+	}
+	public int size(){return 9;}
+	
+	public void setSize(int i){}
+	
+	public void setElementAt(Object obj, int pos){
+		field = obj;	
+	}
+	
+	public void ensureCapacity(int minCapacity) {  }
+	 
+	public Object lastElement() {
+	 		return field;
+	 }
+	 
+	public boolean contains(Object elem) {return false;}
+	  
+	public boolean removeElement(Object obj) {return true; }
+	 
+	public void removeElementAt(int index) { }
+	
+	public Enumeration elements(){
+		Enumeration e = new Enumerator(field);
+		return e;
+	}
+	
+	public boolean isEmpty(){ return true;}
+	
+	public void insertElementAt(Object obj, int index) { field = obj; }
+	
+	public void copyInto(Object[] anArray) {
+		anArray[0] = field;
+	}
+	
+	public int indexOf(Object o, int index) {
+		return 0;
+	}
+	
+	public void clear() {  }
+	
+	public boolean addAll(Collection c){
+			field = c.iterator().next();
+			return true;
+		}
+	
+	public int indexOf(Object elem) {
+		return 0;
+	}
+	
+	public List subList(int fromIndex, int toIndex){ return this;}
+	
+	public Object set(int i, Object o){  field = o;  return o;} 
+	
+	public Object remove(int i){ return field;}
+	
+	public boolean remove(Object o){ return true;}
+	
+	public Object toArray()[]{
+			Object[] o = new Object[1];
+			o[0] = field;
+			return o;
+	}
+	
+	public Object toArray(Object[] o)[]{
+			o[0] = field;
+			return o;
+	}
+	
+	public Iterator iterator(){
+		return new MyIterator(field);
+	}
+}

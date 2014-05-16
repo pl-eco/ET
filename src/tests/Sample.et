@@ -1,0 +1,41 @@
+package src.tests;
+
+modes { lo <: hi; hi <: full; };
+
+class Foo {
+	public int bar(int a, float b) {
+		return a;
+	}
+	public void method2() {
+		
+	}
+}
+
+class MyClass@mode(!s) {
+	Foo@mode(!s2) foo = new Foo@mode(hi)();
+	public MyClass() {
+		foo.method2();
+	}
+	public void MyMethod() where !d <: hi {
+		foo.method2();
+	}
+}
+
+public class Sample@mode(?m) {
+	public static void main(String[] args) {
+		Foo@mode(?d) foo = new Foo();
+		Foo@mode(?d2) foo2 = new Foo();
+		Foo@mode(?d3) foo3 = new Foo();
+
+		using (foo) {
+			foo3.bar(1,2);
+			using (foo2) {
+				foo2.bar(1,2);
+			}
+			foo.bar(1,2);
+		} else {
+			foo.bar(1,2);
+		}
+		// */
+	}
+}

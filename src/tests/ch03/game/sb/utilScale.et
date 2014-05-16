@@ -1,0 +1,9 @@
+package ch03.game.sb;
+
+public class utilScale{
+
+	//Native method declaration
+	public static native int scale(String freq);
+	
+	public static native String[] freqAvailable();
+}

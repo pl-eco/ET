@@ -1,0 +1,23 @@
+package ch03.game.sb;
+
+public class Constant /*@phase(_super)*/{
+	public static final int sxbom = 71;
+	public static final int sybom = 100;
+	
+	public static final int sxsize = 90;
+	public static final int sysize = 39;
+	public static final int scoreheight = 45;
+	public static final int borderwidth = 0;
+	public static final int bframes = 4;
+	public static final int movex = 10;
+	public static final int movey = 5;
+	
+	public static final int sxmet = 80;
+	public static final int symet = 84;
+	
+	// Global Variables
+	public static final int slevel = 3;
+	public static final int blevel = 3;
+	
+	public static final int bmy = 16;
+}

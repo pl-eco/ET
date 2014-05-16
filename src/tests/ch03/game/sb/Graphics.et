@@ -1,0 +1,380 @@
+package ch03.game.sb;
+
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+
+import android.widget.Toast;
+
+import android.content.Context;
+
+public class Graphics @phase(graphics){
+	private int smax;
+	private int bmax;
+
+	// ResContainer @mode(hifi) resHigh;
+	private ResContainer resHigh;
+	// ResContainer @mode(lofi) resLow;
+	private ResContainer resLow;
+
+	// Game Variables
+	private boolean showtitle = true;
+
+	private int count;
+	private int firecnt = 0;
+	private int rndbx;
+	private int rndby;
+	private int sstretch;
+	private static final int txtalign = 100;
+	private int rndcnt = 777;
+	private int[] sbfx;
+	private int[] sbfy;
+
+	private static final int backcol = 0x102040;
+	private static final int sxfire = 11;
+	private static final int syfire = 6;
+	private static final int screendelay = 300;
+
+	private Paint mBitmapPaint = new Paint();
+	private Paint mTextPaint = new Paint();
+	private Paint mLaserBarPaint = new Paint();
+	private Paint mShieldBarPaint = new Paint();
+	private Paint mShieldPaint = new Paint();
+
+	private Meteors meteors;
+	private Ship ship;
+	private Stars stars;
+
+	// private SpaceBlasterGame sbGame;
+
+	public Graphics(Context mContex) {
+		// this.sbGame = sbGame;
+		resHigh = new ResContainer @mode(hifi)
+		(mContex);
+		resLow = new ResContainer @mode(lofi)
+		(mContex);
+
+		resHigh.setShip(new Integer @mode(hifi)
+		(R.drawable.sb_ship_high));
+		resLow.setShip(new Integer @mode(lofi)
+		(R.drawable.sb_ship_low));
+
+		resHigh.setBullet(new Integer @mode(hifi)
+		(R.drawable.sb_bullet_high));
+		resLow.setBullet(new Integer @mode(lofi)
+		(R.drawable.sb_bullet_low));
+
+		resHigh.setMeteor(new Integer @mode(hifi)
+		(R.drawable.sb_meteor_high));
+		resLow.setMeteor(new Integer @mode(lofi)
+		(R.drawable.sb_meteor_low));
+
+		resHigh.setFire(new Integer @mode(hifi)
+				(R.drawable.sb_fire0_high), new Integer @mode(hifi)
+				(R.drawable.sb_fire1_high));
+		resLow.setFire(new Integer @mode(lofi)
+				(R.drawable.sb_fire0_low), new Integer @mode(lofi)
+				(R.drawable.sb_fire1_low));
+
+		resHigh.setBoom(new Integer @mode(hifi)
+				(R.drawable.sb_boom0_high), new Integer @mode(hifi)
+				(R.drawable.sb_boom1_high), new Integer @mode(hifi)
+				(R.drawable.sb_boom2_high), new Integer @mode(hifi)
+				(R.drawable.sb_boom3_high), new Integer @mode(hifi)
+				(R.drawable.sb_boom4_high));
+		resLow.setBoom(new Integer @mode(lofi)
+				(R.drawable.sb_boom0_low), new Integer @mode(lofi)
+				(R.drawable.sb_boom1_low), new Integer @mode(lofi)
+				(R.drawable.sb_boom2_low), new Integer @mode(lofi)
+				(R.drawable.sb_boom3_low), new Integer @mode(lofi)
+				(R.drawable.sb_boom4_low));
+
+		ship = new Ship();
+		stars = new Stars@phase(math)();
+		meteors = new Meteors@phase(math)();
+
+	}
+
+	public void gameStart() {
+		// Set Up Ship variables
+		bmax = Constant.blevel * Constant.blevel;
+		smax = Constant.slevel * Constant.slevel;
+		difflev = 15;// 3
+		distance = 0;
+		score = 0;
+		renew = 250;
+		(adapt meteors).startGame();
+
+		// Bosses init
+		// #1 - SunBird;
+		sbmove = 2;
+		maxtribe = 1;
+		sunbird = false;
+	}
+
+	public int noscale shipWidth() {
+		int width = 0;
+
+	 mswitch(BatteryUtil.batteryState()){
+		 case #hifi:
+		 	width = resHigh.shipWidth();
+		 case #lofi:
+		  width = resLow.shipWidth();
+	 }
+
+		return width;
+	}
+
+	public int noscale shipHeight() {
+		int height = 0;
+
+		mswitch(BatteryUtil.batteryState()){
+		 case #hifi:
+		  height = resHigh.shipHeight();
+		 case #lofi:
+		  height = resLow.shipHeight();
+		 }
+		return height;
+	}
+
+	private void drawStars(Canvas canvas, Stars stars) {
+		for (int a = 0; a < Stars.NUMSTARS; a++) {
+			canvas.drawRect(stars.starsX[a], stars.starsY[a],
+					stars.starsX[a] + 2, stars.starsY[a] + 2, stars.starsC[a]);
+		}
+	}
+
+	private void drawMeteors(Canvas canvas, List meteorPoints) {
+		ResContainer res = getResContainer();
+
+		for (Iterator iterator = meteorPoints.iterator(); iterator.hasNext();) {
+			Point point = (Point) iterator.next();
+			if (point.getFrame() == Point.NOFRAME) {
+				res.drawMeteor(canvas, point.getX(), point.getY());
+			} else {
+				res.drawBoom(canvas, point.getX(), point.getY(),
+						point.getFrame());
+			}
+		}
+	}
+
+	private void drawBullets(Canvas canvas, List bulletPoints) {
+		ResContainer res = getResContainer();
+
+		for (Iterator iterator = bulletPoints.iterator(); iterator.hasNext();) {
+			Point point = (Point) iterator.next();
+			(adapt res).drawBullet(canvas, point.getX(), point.getY());
+		}
+	}
+
+	private void drawPlayField(Canvas canvas, int scrnWidth, int scrnHeight,
+			AudioSB audio) {
+		ResContainer res = getResContainer();
+
+		// preDrawCompute
+		List meteorPoints = (adapt meteors).locateMeteors(
+				scrnWidth, scrnHeight);
+		drawMeteors(canvas, meteorPoints);
+
+		Point shipPoint = (adapt ship).locateShip(scrnWidth, scrnHeight);
+		// Draw ship
+		res.drawShip(canvas, shipPoint.getX(), shipPoint.getY());
+
+		List bulletPoints = (adapt ship.getBullets()).locateBulletPoints(audio,
+				meteors);
+		drawBullets(canvas, bulletPoints);
+
+		(adapt stars).locateStars(scrnWidth, scrnHeight);
+		drawStars(canvas, stars);
+		// END preDrawCompute
+
+		if (firecnt != 0) {
+			res.drawFire(canvas, shipPoint.getX()
+					+ ((Constant.sxsize - sxfire) / 2), shipPoint.getY()
+					+ Constant.sysize, firecnt - 1); // engine fire
+		}
+		firecnt++;
+		if (firecnt > 2)
+			firecnt = 0;
+
+		// utilScale.scale("800000");
+
+		RectF rf = (adapt ship).hitMeteors(meteors, audio);
+
+		// utilScale.scale("600000");
+
+		if (rf != null) {
+			canvas.drawOval(rf, mShieldPaint);
+		}
+	}
+
+	/**
+	 * Show the laser shield and score values in the lower part of the screen
+	 * 
+	 * @param goff
+	 */
+	private void drawScore(Canvas goff, int scrnWidth, int scrnHieght) {
+		int xSize = scrnWidth - Constant.borderwidth * 2;
+		sstretch = (xSize - Graphics.txtalign * 2) / Math.max(bmax, smax);
+
+		// Laser bar
+		int my;
+		my = scrnHieght - Constant.scoreheight + 10;
+		goff.drawRect(Graphics.txtalign, my - 10, Graphics.txtalign + bmax
+				* sstretch, my, mTextPaint);
+
+		String s;
+		s = "Laser: " + ship.getBulletCount() + "/" + bmax;
+
+		// fill rect
+		goff.drawRect(Graphics.txtalign, my - 10,
+				Graphics.txtalign + ship.getBulletCount() * sstretch, my,
+				mLaserBarPaint);
+		goff.drawText(s, 10, my, mTextPaint);
+
+		// Shield bar
+		my += 15;
+		goff.drawRect(Graphics.txtalign, my - 10, Graphics.txtalign + smax
+				* sstretch, my, mTextPaint);
+
+		// Fill rect
+		s = "Shield: " + ship.getShieldCount() + "/" + smax;
+		goff.drawRect(Graphics.txtalign, my - 10,
+				Graphics.txtalign + ship.getShieldCount() * sstretch, my,
+				mShieldBarPaint);
+		goff.drawText(s, 10, my, mTextPaint);
+
+		// Score
+		my += 20;
+
+		s = "Score: " + score;
+		goff.drawText(s, 10, my, mTextPaint);
+	}
+
+	private void drawIntroScreen(Canvas canvas, int scrnWidth, int scrnHeight,
+			AudioSB audio) {
+
+		drawPlayField(canvas, scrnWidth, scrnHeight, audio);
+
+		int xSize = scrnWidth - Constant.borderwidth * 2;
+		int ySize = scrnHeight - Constant.borderwidth * 2
+				- Constant.scoreheight;
+
+		if (rndcnt > Constant.bframes) {
+			rndbx = (int) (Math.random() * (xSize - Constant.sxbom) + 1);
+			rndby = (int) (Math.random() * (ySize - Constant.sybom) + 1);
+			rndcnt = 0;
+		}
+
+		ResContainer res = getResContainer();
+		res.drawBoom(canvas, rndbx, rndby, rndcnt);
+
+		rndcnt++;
+
+		String s;
+		s = "Game Over";
+
+		canvas.drawText(
+				s,
+				(scrnWidth - (s.length() * mTextPaint.getTextSize() / 2)) / 2,
+				(scrnHeight - Constant.scoreheight - Constant.borderwidth) / 2 - 20,
+				mTextPaint);
+		count--;
+		if (count <= 0) {
+			count = screendelay;
+			showtitle = !showtitle;
+		}
+	}
+
+	int distance = 0;
+	long score;
+	int maxdist = 2000;
+	int difflev;
+	int renew;
+	int maxtribe;
+	int sbmove;
+	boolean sunbird;
+
+	int rcnt = 0;
+
+	int tribe;
+
+	public void postDrawCompute() {
+		distance++;
+		score += 100;
+		if (distance % maxdist == 0) {
+			difflev++;
+			if (difflev > 2 & difflev < 10) {
+				renew -= 20;
+				bmax += 1;
+				smax += 1;
+				(adapt meteors).metmy++;
+				(adapt meteors).mrenew--;
+			}
+			if (difflev > 3 & difflev < 11) {
+				maxtribe++;
+				sbmove++;
+			}
+			if (difflev > 3) {
+				sunbird = true;
+				tribe = maxtribe;
+			}
+		}
+
+		// Renew Ship Energy
+		rcnt++;
+		if (rcnt % (renew / Constant.blevel) == 0) {
+			(adapt ship).increaseBullet(bmax);
+		}
+		if (distance % 500 == 0) {
+			(adapt ship).increaseShield(smax);
+		}
+		if (rcnt > renew)
+			rcnt = 0;
+	}
+
+	private ResContainer getResContainer() {
+		ResContainer res = null;
+		 mswitch(BatteryUtil.batteryState()){
+		 case #hifi:
+		 res = resHigh;
+		 case #lofi:
+		 res = resLow;
+		 }
+		return res;
+	}
+
+	public void paint(Canvas canvas, boolean inGame, int scrnWidth,
+			int scrnHeight, AudioSB audio) {
+		if (inGame) {
+			drawPlayField(canvas, scrnWidth, scrnHeight, audio);
+			drawScore(canvas, scrnWidth, scrnHeight);
+			postDrawCompute();
+		} else {
+			drawIntroScreen(canvas, scrnWidth, scrnHeight, audio);
+		}
+	}
+
+	public void initialize(int scrnWidth, int scrnHeight) {
+		// Text Paints
+		mTextPaint.setARGB(255, 255, 255, 255);
+		mShieldPaint.setARGB(125, 0, 255, 255);
+
+		// Laser Bar Energy
+		mLaserBarPaint.setARGB(255, 0, 255, 96);
+		mLaserBarPaint.setStyle(Paint.Style.FILL);
+
+		// Shield Bar Energy
+		mShieldBarPaint.setARGB(255, 0, 255, 255);
+		mShieldBarPaint.setStyle(Paint.Style.FILL);
+
+		// Meteor initialize
+		(adapt meteors).initialize(scrnHeight);
+
+		(adapt stars).initStars(scrnWidth, scrnHeight);
+	}
+}

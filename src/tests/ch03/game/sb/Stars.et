@@ -1,0 +1,62 @@
+package ch03.game.sb;
+
+import android.graphics.Paint;
+
+public class Stars @phase(math){
+	// Star variables
+	public int starsX[];
+	public int starsY[];
+	public Paint starsC[];
+	public static final int NUMSTARS = 30;
+
+	private static final int SPEED = 6;
+
+	/**
+	 * create the starfield in the background
+	 */
+	public void initStars(int scrnWidth, int scrnHeight) {
+		starsX = new int[Stars.NUMSTARS];
+		starsY = new int[Stars.NUMSTARS];
+		starsC = new Paint[Stars.NUMSTARS];
+
+		int xSize = scrnWidth - Constant.borderwidth * 2;
+		int ySize = scrnHeight - Constant.borderwidth * 2
+				- Constant.scoreheight;
+		for (int i = 0; i < Stars.NUMSTARS; i++) {
+			starsX[i] = (int) ((Math.random() * xSize - 1) + 1);
+			starsY[i] = (int) ((Math.random() * ySize - 1) + 1);
+			starsC[i] = newStarColor();
+		}
+	}
+
+	private Paint newStarColor() {
+		int[] rgb;
+		int t;
+		rgb = new int[3];
+		for (int i = 0; i < 3; i++)
+			rgb[i] = 0;
+		t = (int) (Math.random() * 3);
+		rgb[t] = (int) (Math.random() * 128 + 1) + 127;
+		Paint p = new Paint();
+		p.setARGB(255, rgb[0], rgb[1], rgb[2]);
+		return p;
+	}
+
+	// If a star in the background reaches the bottom then it will go back to
+	// the top
+	public void locateStars(int scrnWidth, int scrnHeight) {
+		int xSize = scrnWidth - Constant.borderwidth * 2;
+		int ySize = scrnHeight - Constant.borderwidth * 2
+				- Constant.scoreheight;
+		for (int i = 0; i < Stars.NUMSTARS; i++) {
+			if (starsY[i] + 1 > ySize - (SPEED * 2)) {
+				starsY[i] = 0;
+				starsX[i] = (int) ((Math.random() * xSize - 1) + 1);
+				starsC[i] = newStarColor();
+			} else {
+				starsY[i] += SPEED;
+			}
+		}
+	}
+
+}

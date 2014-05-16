@@ -1,0 +1,164 @@
+package ch03.game.sb;
+
+import android.graphics.Canvas;
+import android.graphics.RectF;
+
+public class Ship @phase(math){
+	// Ship variables
+	private int shield = 0;
+
+	private final int maxshield = 9;
+
+	// ship location
+	private int x;
+	private int y;
+
+	// ship move direction
+	private int dx = 0;
+	private int dy = 0;
+	// # of sheild
+	private int scur;
+
+	private Bullets bullets;
+
+	public Ship() {
+		bullets = new Bullets();
+	}
+
+	public int noscale getX() {
+		return x;
+	}
+
+	public int noscale getY() {
+		return y;
+	}
+
+	public void initialize(int scrnWidth, int scrnHeight) {
+		int xSize = scrnWidth - Constant.borderwidth * 2;
+		int ySize = scrnHeight - Constant.borderwidth * 2
+				- Constant.scoreheight;
+		x = (xSize - Constant.sxsize) / 2;
+		y = ySize - Constant.sysize - Constant.scoreheight
+				- Constant.borderwidth;
+		scur = Constant.slevel * Constant.slevel;
+
+		// initialize the bullet
+		bullets.initialize();
+	}
+
+	public void fireGun(AudioSB audio) {
+		bullets.fire(new Point(x, y), audio);
+	}
+
+	public void moveLeft() {
+		dx = -1;
+	}
+
+	public void moveRight() {
+		dx = 1;
+	}
+
+	public void moveUp() {
+		dy = -1;
+	}
+
+	public void moveDown() {
+		dy = 1;
+	}
+
+	public void resetXDirection() {
+		dx = 0;
+	}
+
+	public void resetYDirection() {
+		dy = 0;
+	}
+
+	public int getBulletCount() {
+		return bullets.getBulletCount();
+	}
+
+	public int getShieldCount() {
+		return scur;
+	}
+
+	public RectF hitMeteors(Meteors meteors, AudioSB audio) {
+		if (meteors.hitShip(new Point(x, y))) {
+			shield = maxshield;
+			scur--;
+			(adapt audio).crashPlay();
+		}
+
+		if (shield > 0) {
+			float left = x - shield;
+			float top = y - shield;
+			float right = left + Constant.sxsize + shield * 2;
+			float bottom = top + Constant.sysize + shield * 2;
+			shield--;
+			return new RectF(left, top, right, bottom);
+		}
+		return null;
+	}
+
+	public void setPoint(int x, int y){
+		this.x = x;
+		this.y = y;
+	}
+	
+	public Point locateShip(int scrnWidth, int scrnHeight) {
+		int xx, yy;
+		int oldx = x;
+		int oldy = y;
+
+		// comment the following code because touch screen is not supported
+		// xx = sbState.mousex;
+		// if (xx > 0) {
+		// yy = sbState.mousey;
+		// if (xx < x)
+		// dx = -1;
+		// if (xx > x + Constant.sxsize)
+		// dx = 1;
+		// if (yy < y)
+		// dy = -1;
+		// if (yy > y + Constant.sysize)
+		// dy = 1;
+		// // if (xx > x & xx < x + sxsize & yy > y & yy < y + sysize) {
+		// if (xx > x && xx < x + Constant.sxsize && yy > y
+		// && yy < y + Constant.sysize) {
+		// dx = 0;
+		// dy = 0;
+		// sbState.mousex = -1;
+		// }
+		// }
+
+		x += dx * Constant.movex;
+		y += dy * Constant.movey;
+
+		if (y <= Constant.borderwidth
+				|| y >= (scrnHeight - Constant.sysize - Constant.scoreheight)) {
+			dy = 0;
+			y = oldy;
+		}
+		if (x >= (scrnWidth - Constant.borderwidth - Constant.sxsize)
+				|| x <= Constant.borderwidth) {
+			dx = 0;
+			x = oldx;
+		}
+
+		return new Point(x, y);
+	}
+
+	public void increaseBullet(int bmax) {
+		bullets.increaseBullet(bmax);
+	}
+
+	public void increaseShield(int smax) {
+		scur++;
+		if (getShieldCount() > smax)
+			scur = smax;
+	}
+
+	public Bullets getBullets() {
+		return bullets;
+	}
+}

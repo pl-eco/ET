@@ -1,0 +1,13 @@
+package ch03.game.sb;
+
+
+phases { 
+    graphics <cpu math;
+	graphics <cpu main;
+	audio <cpu main;
+}
+
+modes {
+	hifi <: full;
+	lofi <: hifi;
+}

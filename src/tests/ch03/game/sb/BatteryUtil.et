@@ -1,0 +1,18 @@
+package ch03.game.sb;
+
+import android.content.Intent;
+
+
+
+public class BatteryUtil{
+		
+		public static	Intent batteryIntent = null;
+	
+		public static modev batteryState() {
+			int level = (batteryIntent.getIntExtra("level", 0)) / 100;
+			if (level > 0.4) 
+				return #hifi;
+			else 
+				return #lofi;
+	}
+}

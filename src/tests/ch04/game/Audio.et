@@ -1,0 +1,31 @@
+package ch04.game;
+
+import ch04.common.AudioClip;
+
+public class Audio /*@phase(audio)*/ {
+	// Sound clips.
+
+	AudioClip crashSound;
+	AudioClip explosionSound;
+	AudioClip fireSound;
+	AudioClip missileSound;
+	AudioClip saucerSound;
+	AudioClip thrustersSound;
+	AudioClip warpSound;
+	
+	// Flags for looping sound clips.
+
+	boolean thrustersPlaying;
+	boolean saucerPlaying;
+	boolean missilePlaying;
+	
+	public void releaseSounds() {
+		crashSound.release();
+		explosionSound.release();
+		fireSound.release();
+		missileSound .release();
+		saucerSound.release();
+		thrustersSound.release();
+		warpSound.release();
+	}
+}

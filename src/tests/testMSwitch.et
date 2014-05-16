@@ -1,0 +1,19 @@
+modes{ low <: hi; }
+
+public MSWITCH@mode(low){
+	X x = X();
+	void m(){
+	    modeVT vt = #hi;
+		mswitch(vt){
+		   case hi: { x.run(); }
+		   case low: { x.run(); }
+		
+		}
+	
+	}
+
+}
+
+class X @mode(hi){ 
+    void run(){}	
+}

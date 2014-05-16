@@ -1,0 +1,98 @@
+package ch03.game.sb;
+
+import java.io.IOException;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Toast;
+import android.widget.TextView;
+import android.content.IntentFilter;
+import android.content.Intent;
+//
+phases { 
+	main <cpu math;
+	graphics <cpu main;
+	audio <cpu main;
+}
+
+modes {
+	hifi <: full;
+	lofi <: hifi;
+}
+
+public class SpaceBlaster @phase(main) extends Activity {
+
+	private View view;
+	
+	//Load the library
+	/*static {
+		System.loadLibrary("scalelib");
+	}*/
+	
+	Process psProc;
+	
+	//@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		/*try {
+			//change to userspace for testing purposes
+			psProc = Runtime.getRuntime().exec(new String[]{"su", "-c", "echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"});
+			psProc.waitFor();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+		
+		BatteryUtil.batteryIntent = getApplicationContext().registerReceiver(null,
+	            new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+		
+        super.onCreate(savedInstanceState);
+        
+        /*TextView tv = new TextView(this);
+        
+        int eCount = 0;
+		while (eCount <= 99998){
+			utilScale.scale("300000");
+			eCount++;
+			utilScale.scale("800000");
+			eCount++;							
+		}
+		
+		tv.setText("" + eCount);
+		setContentView(tv);*/
+        
+        LayoutInflater factory = LayoutInflater.from(this);
+        
+        // Set game layout
+        view = factory.inflate(R.layout.main, null);
+        setContentView(view);		
+       
+        // Enable view key events
+		view.setFocusable(true);
+		view.setFocusableInTouchMode(true);
+        
+	
+	}
+    
+    //@Override
+    protected void onStop() {
+    	super.onStop();
+    	((ArcadeGame)view).halt();
+    }
+    
+    //@Override
+    protected void onPause() {
+    	super.onPause();
+    	onStop();
+    }
+    
+    //@Override
+    protected void onRestart() {
+    	super.onRestart();
+    	((ArcadeGame)view).resume();
+    }
+}

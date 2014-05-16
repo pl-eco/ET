@@ -1,0 +1,289 @@
+package ch04.game;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.util.AttributeSet;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+
+import java.util.Calendar;
+import android.widget.Toast;
+
+public class Asteroids extends ArcadeGame  
+{
+	//time testing
+	long milis = 0;
+	int timeCount = 0;
+	
+	Context mContext;
+	
+	Graphics graphics;
+	Physics physics;
+	Constants constants;
+	AsteroidsState as;
+	Audio audio = /*adapt*/ new Audio();
+	
+	public static final String NAME = "Asteroids";
+	static final String TAG = "Asteroids";
+	
+	/**
+	 * 
+	 * @param context
+	 */
+	public Asteroids(Context context) {
+		super(context);
+		init(context);
+	}
+
+	public Asteroids(Context context, AttributeSet attrs) {
+		super(context, attrs);
+		init(context);
+	}
+	
+	private void init(Context context){
+		mContext = context;
+		as = new AsteroidsState();
+		constants = new Constants(this);
+		//might need to call setUpdatePeriod again
+		//once delay changes dynamically
+		setUpdatePeriod(constants.getDelay());
+		
+		//class to be invoked with physics phase
+		physics = new Physics@phase(maths)(as, context, audio, this);
+		
+		//class to be invoked with graphics phase
+		graphics = new Graphics@phase(graphics)(as, physics, this);
+			
+		testAllEvents();
+	}
+
+    private void testAllEvents() {
+		initialize();
+		onKeyUp(0, null);
+		onKeyDown(0, null);
+		onTouchEvent(null);
+		keyPressed(null);
+		Canvas can = new Canvas();
+		onDraw(can);
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		keyReleased(event);
+		return true;
+	}
+
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		keyPressed(event);
+		return true;
+	}
+
+	/**
+	 * OnTap Start Game
+	 */
+	public boolean onTouchEvent(MotionEvent event) {
+		if (as.loaded && !as.playing) {
+			utilScale.scale("800000");
+			(/*adapt*/physics).initGame();
+			utilScale.scale("600000");
+		}
+		else if ((/*adapt*/(/*adapt*/physics).ship).active) 
+		{
+			if (as.sound & !as.paused) {
+				(/*adapt*/audio.fireSound).play();
+			}
+
+			utilScale.scale("800000");
+			(/*adapt*/physics).onTouch();
+			utilScale.scale("600000");
+			
+			as.left = true;
+		}
+		return true;
+	}
+	
+	/**
+	 * Draw Sprites
+	 */
+	protected void onDraw(Canvas canvas) 
+	{
+		utilScale.scale("300000");
+		(/*adapt*/graphics).onDraw(canvas);
+		utilScale.scale("600000");
+		
+		if (as.playing){
+			if (timeCount == 0)
+				milis = Calendar.getInstance().getTimeInMillis();
+			
+			timeCount++;
+			
+			if (timeCount == 2500){
+				milis = Calendar.getInstance().getTimeInMillis() - milis;
+				Toast.makeText(mContext, String.valueOf(milis), Toast.LENGTH_SHORT).show();
+				timeCount = 0;
+			}
+		}
+	}
+
+
+
+	/**
+	 * Create Shapes
+	 */
+	protected void initialize () {
+		utilScale.scale("800000");
+		(/*adapt*/physics).initialize();
+		utilScale.scale("600000");
+	}
+
+	public void keyReleased(KeyEvent e) {
+		final int keyCode = e.getKeyCode();
+
+		// Check if any cursor keys where released and set flags.
+
+		if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT 
+				|| keyCode == KeyEvent.KEYCODE_Q)
+			as.left = false;
+		if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+				|| keyCode == KeyEvent.KEYCODE_W)
+			as.right = false;
+		if (keyCode == KeyEvent.KEYCODE_DPAD_UP
+				|| keyCode == KeyEvent.KEYCODE_O)
+			as.up = false;
+		if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+				|| keyCode == KeyEvent.KEYCODE_L)
+			as.down = false;
+
+		if (!as.up && !as.down && audio.thrustersPlaying) {
+			(/*adapt*/audio.thrustersSound).stop();
+			audio.thrustersPlaying = false;
+		}
+	}
+
+	public void keyPressed(KeyEvent e) {
+		final int keyCode = e.getKeyCode();
+
+		// Check if any cursor keys have been pressed and set flags.
+
+		if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT 
+				|| keyCode == KeyEvent.KEYCODE_Q)
+			as.left = true;
+		if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+				|| keyCode == KeyEvent.KEYCODE_W)
+			as.right = true;
+		if (keyCode == KeyEvent.KEYCODE_DPAD_UP
+				|| keyCode == KeyEvent.KEYCODE_O)
+			as.up = true;
+		if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+				|| keyCode == KeyEvent.KEYCODE_L)
+			as.down = true;
+
+		if ((as.up || as.down) && (/*adapt*/(/*adapt*/physics).ship).active  && !audio.thrustersPlaying) {
+			if (as.sound && !as.paused) {
+				(/*adapt*/audio.thrustersSound).loop();
+			}
+			audio.thrustersPlaying = true;
+		}
+
+		// Spacebar: fire a photon and start its counter.
+
+		if ( ((keyCode == KeyEvent.KEYCODE_SPACE) || (keyCode == 23)) && (/*adapt*/(/*adapt*/physics).ship).active) 
+		{
+			if (as.sound & !as.paused) {
+				(/*adapt*/audio.fireSound).play();
+			}
+
+			
+			(/*adapt*/physics).onTouch();			
+		}
+
+		// Allow upper or lower case characters for remaining keys.
+
+		// 'H' key: warp ship into hyperspace by moving to a random location and
+		// starting counter.
+
+		if (keyCode == KeyEvent.KEYCODE_H && (/*adapt*/(/*adapt*/physics).ship).active && as.hyperCounter <= 0) {
+			(/*adapt*/(/*adapt*/physics).ship).x = (int) (Math.random() * getWidth());
+			(/*adapt*/(/*adapt*/physics).ship).y = (int) (Math.random() * getHeight());
+			as.hyperCounter = constants.getHyperCount();
+
+			if (as.sound & !as.paused)
+				(/*adapt*/audio.warpSound).play();
+		}
+
+		// 'P' key: toggle pause mode and start or stop any active looping sound
+		// clips.
+
+		if (keyCode == KeyEvent.KEYCODE_P) { 
+			if (as.paused) {
+				if (as.sound && audio.missilePlaying)
+					(/*adapt*/audio.missileSound).loop();
+				if (as.sound && audio.saucerPlaying)
+					(/*adapt*/audio.saucerSound).loop();
+				if (as.sound && audio.thrustersPlaying)
+					(/*adapt*/audio.thrustersSound).loop();
+			} else {
+				if (audio.missilePlaying)
+					(/*adapt*/audio.missileSound).stop();
+				if (audio.saucerPlaying)
+					(/*adapt*/audio.saucerSound).stop();
+				if (audio.thrustersPlaying)
+					(/*adapt*/audio.thrustersSound).stop();
+			}
+			as.paused = !as.paused;
+		}
+
+		// 'M' key: toggle sound on or off and stop any looping sound clips.
+
+		if (keyCode == KeyEvent.KEYCODE_M && as.loaded) { 
+			if (as.sound) {
+				(/*adapt*/audio.crashSound).stop();
+				(/*adapt*/audio.explosionSound).stop();
+				(/*adapt*/audio.fireSound).stop();
+				(/*adapt*/audio.missileSound).stop();
+				(/*adapt*/audio.saucerSound).stop();
+				(/*adapt*/audio.thrustersSound).stop();
+				(/*adapt*/audio.warpSound).stop();
+			} else {
+				if (audio.missilePlaying && !as.paused)
+					(/*adapt*/audio.missileSound).loop();
+				if (audio.saucerPlaying && !as.paused)
+					(/*adapt*/audio.saucerSound).loop();
+				if (audio.thrustersPlaying && !as.paused)
+					(/*adapt*/audio.thrustersSound).loop();
+			}
+			as.sound = !as.sound;
+		}
+
+		// 'S' key: start the game, if not already in progress.
+		if (keyCode == KeyEvent.KEYCODE_S && as.loaded && !as.playing) {
+			(/*adapt*/physics).initGame();
+		}
+
+		// 'E' Exit: Back to main menu
+		if (keyCode == KeyEvent.KEYCODE_E ) {
+			stopUpdateTimer();
+			audio.releaseSounds();
+			
+			System.exit(0); //Argg!!
+		}
+	}
+
+	protected void updatePhysics() {
+		utilScale.scale("800000");
+		(/*adapt*/physics).updatePhysics();
+		utilScale.scale("600000");
+	}
+
+	protected boolean gameOver() {
+		return as.loaded && !as.playing;
+	}
+	
+	
+	public int /*noscale*/ getScrnWidth(){
+		return getWidth();
+	}
+	
+	public int /*noscale*/ getScrnHeight(){
+		return getHeight();
+	}
+}

@@ -1,0 +1,26 @@
+package ch04.game;
+
+import android.graphics.Point;
+
+public class AsteroidsState{
+	// Key flags.
+	boolean left = false;
+	boolean right = false;
+	boolean up = false;
+	boolean down = false;	
+	
+	// Flags for game state and options.
+	boolean loaded = false;
+	boolean paused;
+	boolean playing = false;
+	boolean sound = true;
+	
+	// Ship data.
+
+	int hyperCounter; // Timer counter for hyperspace.
+	
+	// Background stars.
+	//int i;
+	int numStars;
+	Point[] stars;
+}

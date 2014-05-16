@@ -1,0 +1,57 @@
+package tests;
+
+modes{   lo <: hi;  
+               hi <: full;    }
+phases{  math <cpu graphic; }
+
+public class TestValues{
+    public static void main(String[] args) {
+        TestValues test = new TestValues();
+      	//test.test();
+      	test.testField();
+    }
+    
+    public void test(){
+    	    //test flow
+    	    X@mode(lo) @phase(graphic) localX = new X();
+    	    
+    	    //test call
+    	    localX.m();
+    }
+    
+    public void testField(){
+    			Y y = new Y();
+    			y.field = new X();
+    			y.m();
+    }
+    
+    public void testArray(){
+    }
+    
+    public void testMSwitch(){
+    		 X x = new X();
+         modev t = #hi;
+          mswitch(t){
+                case #lo: x.m();
+			  //case #hi: x.m();
+          }
+    }
+    
+    public void testAdapt(){
+    		// x = adapt o;   x.m();
+    		// (adapt o).m();
+    		// (adapt[math] o).m();
+    }
+}
+
+class X@phase(math){
+	public void m(){Object o = new Object();	}
+}
+
+class Y{
+	public X@mode(lo) field;
+	
+	public void m(){
+		field.m();
+	}
+}

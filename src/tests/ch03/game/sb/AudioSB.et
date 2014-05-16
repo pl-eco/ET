@@ -1,0 +1,88 @@
+package ch03.game.sb;
+
+import android.content.Context;
+import ch03.common.AudioClip;
+import ch03.common.Tools;
+import android.content.Intent;
+
+public class AudioSB @phase(audio) {
+	
+	AudioClip blast, crash, kill;
+	
+	class Res {
+		Integer resBlast = Integer.valueOf(R.raw.sb_blast);
+		Integer resCrash = Integer.valueOf(R.raw.sb_collisn);
+		Integer resKill = Integer.valueOf(R.raw.sb_mdestr);
+	}
+	
+	//Mode
+	//mswitch code:
+	Res resHigh = new Res @mode(hifi)();
+	Res resLow = new Res @mode(lofi) ();
+	
+	// App context
+	private Context mContex;
+	
+	public AudioSB(Context aContext){
+		mContex = aContext;
+	}
+	
+	public void blastPlay(){
+		// Resource chosen will be based upon current energy level
+		if (blast == null){
+			try {
+				//mswitch code:
+	            mswitch(BatteryUtil.batteryState()){
+		        	case #hifi:
+		        		blast = new AudioClip(mContex, resHigh.resBlast.intValue());
+		        	case #lofi:
+		        		blast = new AudioClip(mContex, resLow.resBlast.intValue());
+	            }
+			} catch (Exception e) {
+				Tools.MessageBox(mContex, "Audio Error: " + e.toString());
+			}
+		}
+			
+			blast.play();
+
+	}
+	
+	public void crashPlay(){
+		// Resource chosen will be based upon current energy level
+		if (crash == null){
+			try {
+				//mswitch code:
+	            mswitch(BatteryUtil.batteryState()){
+		        	case #hifi:
+		        		crash = new AudioClip(mContex, resHigh.resCrash.intValue());
+		        	case #lofi:
+		        		crash = new AudioClip(mContex, resLow.resCrash.intValue());
+	            }
+			} catch (Exception e) {
+				Tools.MessageBox(mContex, "Audio Error: " + e.toString());
+			}	
+		}
+			
+		crash.play();
+	}
+	
+	public void killPlay(){
+		// Resource chosen will be based upon current energy level
+		if (kill == null){
+			try {
+				//mswitch code:
+	            mswitch(BatteryUtil.batteryState()){
+		        	case #hifi:
+		        		kill = new AudioClip(mContex, resHigh.resKill.intValue());
+		        	case #lofi:
+		        		kill = new AudioClip(mContex, resLow.resKill.intValue());
+	            }
+			} catch (Exception e) {
+				Tools.MessageBox(mContex, "Audio Error: " + e.toString());
+			}	
+		}
+			
+		kill.play();
+	}
+	
+}

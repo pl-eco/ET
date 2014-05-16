@@ -1,0 +1,74 @@
+package ch03.game.sb;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import android.graphics.Canvas;
+
+public class Bullets @phase(math){
+	public static final int bul_xs = 54;
+	public static final int bul_ys = 8;
+
+	// bullet location
+	private int[] bx = new int[Constant.blevel * 10];
+	private int[] by = new int[Constant.blevel * 10];
+
+	// # of bullet/laser
+	private int bcur;
+
+	public void initialize() {
+		for (int n = 0; n < Constant.blevel * 10; n++) {
+			bx[n] = -1;
+		}
+		bcur = Constant.blevel * Constant.blevel;
+	}
+
+	public void fire(Point shipPoint, AudioSB audio) {
+		if (bcur <= 0)
+			return;
+
+		int n = 0, f = -1;
+		while (n < Constant.blevel * 10 && bx[n] >= 0)
+			n++;
+		if (n < Constant.blevel * 10)
+			f = n;
+		if (f >= 0) {
+			bx[f] = shipPoint.getX() + ((Constant.sxsize - Bullets.bul_xs) / 2);
+			by[f] = shipPoint.getY();
+			bcur--;
+
+			(adapt audio).blastPlay();
+		}
+	}
+
+	public List locateBulletPoints(AudioSB audio, Meteors meteors) {
+		List points = new LinkedList();
+		for (int n = 0; n < Constant.blevel * 10; n++) {
+			if (bx[n] > 0) {
+				by[n] -= Constant.bmy;
+
+				boolean hit = meteors.hitBullet(new Point(bx[n], by[n]));
+				if (hit) {
+					(adapt audio).killPlay();
+				}
+				if (by[n] < Constant.borderwidth | hit) {
+					bx[n] = -1;
+				} else {
+					points.add(new Point(bx[n], by[n]));
+				}
+			}
+		}
+
+		return points;
+	}
+
+	public int getBulletCount() {
+		return bcur;
+	}
+
+	public void increaseBullet(int bmax) {
+		bcur++;
+		if (getBulletCount() > bmax)
+			bcur = bmax;
+	}
+}

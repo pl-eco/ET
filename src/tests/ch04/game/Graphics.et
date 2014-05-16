@@ -1,0 +1,184 @@
+package ch04.game;
+
+import ch04.common.Polygon;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+
+public class Graphics  
+{	
+	AsteroidsState asteroids;
+	Physics physics;
+	
+	Asteroids WandH;
+	
+	// Android Vars
+	/*private*/ Paint mPaint;
+	/*private*/ Paint mGreenPaint;
+	/*private*/ Paint mRedPaint;	
+	
+	public Graphics(AsteroidsState game, Physics p, Asteroids wh) {
+		asteroids = /*adapt*/game;
+		physics = /*adapt*/p;
+		
+		WandH = wh;
+		
+		initLayout();
+	}
+	
+	/**
+	 * Draw Sprites
+	 */
+	protected void onDraw(Canvas canvas) 
+	{
+		int i;
+		
+		//scale("300000");
+		
+		// Get screen size
+		int width = WandH.getScrnWidth();
+		int height = WandH.getScrnHeight();
+
+		// draw stars
+		for (i = 0; i < asteroids.numStars; i++) {
+			canvas.drawPoint(asteroids.stars[i].x, asteroids.stars[i].y, mPaint);
+		}
+
+		// Draw photon bullets.
+
+		for (i = 0; i < Constants.MAX_SHOTS; i++) {
+			if ((/*adapt*/physics.photons[i]).active) {
+				//asteroids.photons[i].draw(canvas, mPaint);
+				
+				drawPoly(canvas, mPaint, (/*adapt*/physics.photons[i]).sprite);
+			}
+		}
+		// Draw the guided missile, counter is used to quickly fade color to
+		// black when near expiration.
+		if ((/*adapt*/physics.missile).active) {
+			//asteroids.missile.draw(canvas, mPaint);
+			
+			drawPoly(canvas, mPaint, (/*adapt*/physics.missile).sprite);
+		}
+
+		// Draw the flying saucer.
+
+		if ((/*adapt*/physics.ufo).active) {
+			//asteroids.ufo.draw(canvas, mRedPaint);
+			
+			drawPoly(canvas, mRedPaint, (/*adapt*/physics.ufo).sprite);
+		}
+
+		// Draw the ship
+		if ((/*adapt*/physics.ship).active) {
+			// draw ship
+			//asteroids.ship.draw(canvas, mPaint);
+			
+			//New Method for drawing
+			drawPoly(canvas, mPaint, (/*adapt*/physics.ship).sprite);
+
+			// Draw thruster exhaust if thrusters are on. Do it randomly to get
+			// a flicker effect.
+
+			if (!asteroids.paused && Math.random() < 0.5) { // && detail
+				if (asteroids.up) {
+					//asteroids.fwdThruster.draw(canvas, mPaint);
+					
+					drawPoly(canvas, mPaint, (/*adapt*/physics.fwdThruster).sprite);
+				}
+				if (asteroids.down) {
+					//asteroids.revThruster.draw(canvas, mPaint);
+					
+					drawPoly(canvas, mPaint, (/*adapt*/physics.revThruster).sprite);
+				}
+			}
+		}
+
+		// Draw the asteroids.
+		for (i = 0; i < Constants.MAX_ROCKS; i++) {
+			if ((/*adapt*/physics.asteroidsPS[i]).active) {
+				//asteroids.asteroids[i].draw(canvas, mGreenPaint);
+				
+				drawPoly(canvas, mGreenPaint, (/*adapt*/physics.asteroidsPS[i]).sprite);
+			}
+		}
+
+		// Draw any explosion debris, 
+
+		for (i = 0; i < Constants.MAX_SCRAP; i++) {
+			if ((/*adapt*/physics.explosions[i]).active) {
+				//asteroids.explosions[i].draw(canvas, mGreenPaint);
+				
+				drawPoly(canvas, mGreenPaint, (/*adapt*/physics.explosions[i]).sprite);
+			}
+		}
+
+		// Display status and messages.
+		float fontSize = (/*adapt*/mPaint).getTextSize();
+
+		canvas.drawText("Score: " + physics.score, fontSize, (/*adapt*/mPaint).getTextSize(),
+				mPaint);
+		canvas.drawText("Ships: " + physics.shipsLeft, fontSize, height - fontSize,
+				mPaint);
+
+		String str = "High: " + physics.highScore;
+
+		canvas.drawText("High: " + physics.highScore, width
+				- (fontSize / 1.2f * str.length()), fontSize, mPaint);
+
+		if (!asteroids.sound) {
+			str = "Mute";
+			canvas.drawText(str, width - (fontSize * str.length()), height
+					- fontSize, mPaint);
+		}
+
+		if (!asteroids.playing) {
+			//if (!loaded) {
+			//} else {
+			if (asteroids.loaded) {
+				str = "Game Over";
+				final float x = (width - (str.length() * fontSize / 2)) / 2;
+
+				canvas.drawText(str, x, height / 4, mPaint);
+
+//				str = "'S' to Start";
+//				canvas.drawText(str, x, height / 4 + fontSize, mPaint);
+			}
+		} 
+		else if (asteroids.paused) {
+			str = "Game Paused";
+
+			final float x = (width - (str.length() * fontSize / 2)) / 2;
+			canvas.drawText(str, x, height / 4, mPaint);
+		}
+		
+		//scale("600000");
+	}
+	
+	void drawPoly(Canvas canvas, Paint paint, Polygon sprite) {
+		float[] points = sprite.getPoints();
+
+		if (points != null) {
+			canvas.drawLines(points, paint);
+		}
+	}
+	
+	/**
+	 * Initialize Canvas layout
+	 */
+	void initLayout() {
+		mPaint = new Paint();
+		mPaint.setARGB(255, 255, 255, 255);
+		
+		// Asteroids
+		mGreenPaint = new Paint();
+		mGreenPaint.setARGB(255, 0, 255, 0);
+		//mGreenPaint.setStyle(Paint.Style.FILL);
+		
+		// UFO
+		mRedPaint = new Paint();
+		mRedPaint.setARGB(255, 255, 0, 0);
+		//mRedPaint.setStyle(Paint.Style.FILL);
+	}
+	
+	
+}

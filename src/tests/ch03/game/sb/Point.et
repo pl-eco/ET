@@ -1,0 +1,33 @@
+package ch03.game.sb;
+
+public class Point /*@phase(_super)*/{
+	private final int x;
+	private final int y;
+	private final int frame;
+	
+	public static final int NOFRAME = -1;
+	
+	public Point(int x, int y, int frame){
+		this.x = x;
+		this.y = y;
+		this.frame = frame;
+	}
+	
+	public Point(int x, int y){
+		this.x = x;
+		this.y = y;
+		this.frame = NOFRAME;
+	}
+	
+	public int getX(){
+		return x;
+	}
+	
+	public int getY(){
+		return y;
+	}
+	
+	public int getFrame(){
+		return frame;
+	}
+}

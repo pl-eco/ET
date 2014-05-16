@@ -1,0 +1,46 @@
+/*
+ * Test if call's arguments can properly flow into parameters and return value can flows out 
+ */
+public class ArgsTest {
+	public static void main(String[] args) {
+		ArgsTest test = new ArgsTest();//.testArgs();
+		test.testArgs();
+		test.testPrimitive(0, new ArgA());
+	}
+	
+	public int testPrimitive(int i, ArgA a){
+			Object o = a;
+			int s = i;
+			return s;
+	}
+
+
+	public void testArgs() {
+		ArgC c = args(new ArgA(), new ArgB());
+		c.m();
+	}
+
+	private ArgC args(ArgA a, ArgB b) {
+		a.m();
+		b.m();
+		return new ArgC();
+	}
+}
+
+class ArgA {
+	public void m() {
+		Object argA = new Object();
+	}
+}
+
+class ArgB {
+	public void m() {
+		Object argB = new Object();
+	}
+}
+
+class ArgC {
+	public void m() {
+		Object argC = new Object();
+	}
+}

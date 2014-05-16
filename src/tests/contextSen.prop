@@ -1,0 +1,12 @@
+#the name of the class that contains main method
+#mainClass=ch03.game.sb.SpaceBlaster
+#mainClass=ch04.game.AsteroidsActivity
+mainClass=ArgsTest
+
+#the name and the paremeter of the main method
+#entryName=onCreate#android.os.Bundle|
+entryName=main#java.lang.String[]|
+#entryName=initialize#;paint#android.graphics.Canvas
+
+#extraMethod=ch03.game.sb.SpaceBlasterGame.initialize#;ch03.game.sb.SpaceBlasterGame.onDraw#android.graphics.Canvas
+#onDemandClasses=android.graphics.Canvas;

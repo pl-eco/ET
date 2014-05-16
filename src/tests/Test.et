@@ -1,0 +1,42 @@
+
+phases { 
+	main <cpu math;
+	graphics <cpu main;
+}
+
+class Maths @phase(math){
+	public void operate(){
+	}
+}
+
+public class Test@phase(main) {
+    Maths math;
+    
+    public Test(Maths math){
+    	this.math = math;
+    }
+    
+    public static void main(String[] args) {
+        Test test = new Test@phase(main)(new Maths@phase(math)());
+        Object obj = null;
+        //Object obj = new Object();
+      //  St.trySt();
+        test.tryPhaseRec(obj);
+    }
+    
+    public Object call(){
+    	Object o = new Object();
+    	return o;
+    }
+    
+    public void tryPhaseRec(Object o){
+    		(adapt math).operate();
+    }
+    
+}
+
+class St{
+	public static void trySt(){}
+}
+
+

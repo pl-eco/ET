@@ -1,0 +1,9 @@
+package java.util;
+
+public class Calendar{
+     public static Calendar getInstance(){
+     	return new Calendar();
+     }
+     
+     	public long getTimeInMillis() {  return 2333L; }
+}

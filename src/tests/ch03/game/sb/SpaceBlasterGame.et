@@ -1,0 +1,202 @@
+package ch03.game.sb;
+
+import java.util.Calendar;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.util.AttributeSet;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.widget.Toast;
+
+//target code generated for utility class access 
+//import et.util.utilScale;
+
+public class SpaceBlasterGame extends ArcadeGame {
+	// Game name
+	public static final String NAME = "SpaceBlaster";
+
+	// Refresh rate (ms)
+	private static final long UPDATE_DELAY = 10;
+
+	private boolean inGame = false;
+
+	private Ship ship;
+	
+	// class to be invoked with graphics phase
+	private Graphics graphics;
+
+	private AudioSB audio;
+	// comment the following code because touch screen is not supported
+	// int mousex;
+	// int mousey;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param context
+	 */
+	public SpaceBlasterGame(Context context) {
+		super(context);
+		init(context);
+	}
+
+	public SpaceBlasterGame(Context context, AttributeSet attrs) {
+		super(context, attrs);
+		init(context);
+	}
+
+	// invoked by constructor
+	private void init(Context context) {
+		super.setUpdatePeriod(UPDATE_DELAY);
+		
+		audio = new AudioSB(context);
+		ship = new Ship@phase(math)();
+		// class to be invoked with graphics phase
+		graphics = new Graphics@phase(graphics)(context);
+		
+		// invoke the mock method that is able to parse all of the event-driven
+		// methods
+		testAllEvents();
+	}
+
+	public void testAllEvents() {
+		initialize();
+		onKeyUp(0, null);
+		onKeyDown(0, null);
+		gameStart();
+		onTouchEvent(null);
+		
+		Canvas can = new Canvas();
+		onDraw(can);
+		
+	}
+
+	/**
+	 * Android Key events
+	 */
+
+	public boolean onKeyUp(int key, KeyEvent event) {
+		if (key == KeyEvent.KEYCODE_DPAD_LEFT
+				|| key == KeyEvent.KEYCODE_DPAD_RIGHT
+				|| key == KeyEvent.KEYCODE_Q || key == KeyEvent.KEYCODE_W) {
+			// ship.dx = 0;
+			(adapt ship).resetXDirection();
+		} else if (key == KeyEvent.KEYCODE_DPAD_UP
+				|| key == KeyEvent.KEYCODE_DPAD_DOWN
+				|| key == KeyEvent.KEYCODE_O || key == KeyEvent.KEYCODE_L) {
+			// ship.dy = 0;
+			(adapt ship).resetYDirection();
+		}
+		return true;
+	}
+
+	public boolean onKeyDown(int key, KeyEvent event) {
+		if (inGame) {
+			// mousex = -1;
+			if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_Q) {
+				// ship.dx = -1;
+				(adapt ship).moveLeft();
+			} else if (key == KeyEvent.KEYCODE_DPAD_RIGHT
+					|| key == KeyEvent.KEYCODE_W) {
+				// ship.dx = 1;
+				(adapt ship).moveRight();
+			} else if (key == KeyEvent.KEYCODE_DPAD_UP
+					|| key == KeyEvent.KEYCODE_O) {
+				// ship.dy = -1;
+				(adapt ship).moveUp();
+			} else if (key == KeyEvent.KEYCODE_DPAD_DOWN
+					|| key == KeyEvent.KEYCODE_L) {
+				// ship.dy = 1;
+				(adapt ship).moveDown();
+			} else if ((key == KeyEvent.KEYCODE_SPACE) || (key == 23)) {
+				(adapt ship).fireGun(audio);
+			}
+		} else {
+			if (key == KeyEvent.KEYCODE_S) {
+				gameStart();
+			}
+		}
+		if (key == KeyEvent.KEYCODE_E) {
+			inGame = false;
+			// stopUpdateTimer();
+		}
+
+		if (key == KeyEvent.KEYCODE_Q) {
+			// Arggg!! There should be a better wayt to quit!
+			System.exit(0);
+		}
+		return true;
+	}
+
+	/**
+	 * Main Draw Sub
+	 */
+
+	protected void onDraw(Canvas canvas) {
+		super.dispatchDraw(canvas);
+		(adapt graphics).paint(canvas, inGame, this.getScrnWidth(),
+				this.getScrnHeight(), audio);
+
+		if ((adapt ship).getShieldCount() < 0)
+			inGame = true;
+	}
+
+	public boolean onTouchEvent(MotionEvent event) {
+		int tx = (int) event.getX();
+		int ty = (int) event.getY();
+
+		// Has the ship been touched. if so move it
+		int shipWidth = graphics.shipWidth();
+		int shipHeight = graphics.shipHeight();
+		if (tx >= (ship).getX() && tx <= (ship).getX() + shipWidth
+				&& ty >= (ship).getY()
+				&& ty <= (ship).getY() + (graphics).shipHeight()) {
+			(ship).setPoint(tx - (shipWidth / 2),
+					ty - ((shipHeight) / 2));
+		}
+		// else start game if not already started
+		else if (event.getAction() == MotionEvent.ACTION_UP) {
+			if (!inGame) {
+				gameStart();
+			} else {
+				// fire gun
+				(/*adapt*/ ship).fireGun(audio);
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Overload to initialize game elements
+	 */
+	public void initialize() {
+		(adapt graphics).initialize(this.getScrnWidth(),
+				this.getScrnHeight());
+		(adapt ship).initialize(this.getScrnWidth(), this.getScrnHeight());
+	}
+
+	// protected void updatePhysics() {}
+
+	// protected long getScore() {
+	// return sbState.score;
+	// }
+
+	public int noscale getScrnWidth() {
+		return getWidth();
+	}
+
+	public int noscale getScrnHeight() {
+		return getHeight();
+	}
+
+	// Game Start
+	public void gameStart() {
+		(adapt graphics).gameStart();
+		inGame = true;
+	}
+	// public void gameOver() {
+	// // ingame = false;
+	// sbState.ingame = true;
+	// }
+}
